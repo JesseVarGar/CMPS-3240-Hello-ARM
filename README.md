@@ -44,10 +44,7 @@ This lab requires the departmental ARM server. It will not work on `odin.cs.csub
 
 This lab will cover two important concepts: 1) interacting with data on microprocessors, and 2) running programs on microprocessors. First, microprocessors have two types of storage for data: registers and memory. Registers are special:
 
-* You only have a finite amount of them. We will learn why so later on in class. If you didn't know this beforehand, this is kind of a staggering concept, that your processor only has a capacity to hold properly operate on only tens of values at once. At a given time it is juggling intermediate values between registers and memory.
-** MIPS has 32 general purpose registers
-** ARM64 has roughly 31 general purpose registers
-** Your x86 processor has only tens of registers
+* You only have a finite amount of them. We will learn why so later on in class. If you didn't know this beforehand, this is kind of a staggering concept, that your processor only has a capacity to hold properly operate on only tens of values at once. At a given time it is juggling intermediate values between registers and memory. MIPS has 32 general purpose registers. ARM64 has roughly 31 general purpose registers. Your x86 processor has only tens of registers.
 * They are very fast compared to memory because they are constructed from SRAM rather than DRAM.
 * Some architectures, such as MIPS and ARM, can only perform arithmetic on register values. So, if you want to modify something in memory you must load it to a register, modify it, then store it back into memory. This is called *load-store architecture*.
 * They have a given identifier, you cannot rename them. Examples: `x0`, `x1`, `x2`, etc. Names change across different versions of ARM.
@@ -56,7 +53,7 @@ This lab will cover two important concepts: 1) interacting with data on micropro
 
 Most of the instructions in today's lab will operate on registers. 
 
-The second concept we will cover is the idea that your program is a *user process*. It runs some commands, etc. However, there are some situations, such as I/O or the completion of the program, where your process will have to get the help of the &supervisor process* (OS) to accomplish a goal. This handoff is called a syscall, where you program temporally hands off control to the supervisor. You can think of this as a sort of function call that you would see in a higher-level language.
+The second concept we will cover is the idea that your program is a *user process*. It runs some commands, etc. However, there are some situations, such as I/O or the completion of the program, where your process will have to get the help of the *supervisor process* (OS) to accomplish a goal. This handoff is called a syscall, where you program temporally hands off control to the supervisor. You can think of this as a sort of function call that you would see in a higher-level language.
 
 ## Approach
 
