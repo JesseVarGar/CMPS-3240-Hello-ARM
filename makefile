@@ -1,12 +1,12 @@
 
 hello.out: hello.o
-	ld hello.o -o hello.out
+	ld $< -o $@
 
 hello.o: hello.s
-	as hello.s -o hello.o
+	as $< -o $@
 
 hello_gcc.s: hello.c
-	gcc -S hello.c -o hello_gcc.s
+	gcc -S $< -o $@
 
 clean:
-	rm -r -f *.out *.o *.s
+	rm -r -f *.out *.o
