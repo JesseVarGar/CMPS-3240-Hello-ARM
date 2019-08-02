@@ -1,4 +1,43 @@
-# CMPS-3240-Hello-ARM
+# CMPS 3240 Lab: Hello, world! ARM
+
+## Objectives
+
+During this lab you will:
+
+* Code ARM64 (ARMv8-A) assembly language
+* Assemble and link assembly code
+* Use `gdb` to debug a binary program
+
+## Prerequisites
+
+This lab assumes you have read or are familiar with the following topics:
+
+* Difference between compiler, assembler and linker. Refer to Appendix A-1. Note that the book covers MIPS, and we will be using ARM for labs.
+* CPU registers, register usage, load-store architecture.
+* Use software interrupts to halt a program and print to the screen
+
+Please study these topics if you are not familiar with them so that the lab can be completed in a timely manner.
+
+## Requirements
+
+The following is a list of requirements to complete the lab. Some labs can completed on any machine, whereas some require you to use a specific departmental teaching server. You will find this information here.
+
+### Software
+
+We will use the following programs:
+
+* `as`
+* `ld`
+* `git`
+* `gdb`
+
+### Compatability
+
+This lab requires the departmental ARM server. It will not work on `odin.cs.csubak.edu`, `sleipnir.cs.csubak.edu`, other PCs, etc. that have x86 processors. It may work on a Raspberry Pi or similar system on chip with ARM, but it must be ARMv8-a.
+
+| Linux | Mac | Windows |
+| :--- | :--- | :--- |
+| Limited | No | No |
 
 
 ## Background
