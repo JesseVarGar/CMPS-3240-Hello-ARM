@@ -83,7 +83,15 @@ This code is located in `hello.s` in this repo. Line-by-line:
 .text
 ```
 
-This line is not an instruction at all. It is an assembler/linker directive that indicates where these instructions should be placed. This next line:
+This line is not an instruction at all. It is an assembler/linker directive that indicates where these instructions should be placed. Generally there are five parts of memory:
+
+1. Code (the process being executed) which is readable but not writable,
+2. Read only static data,
+3. Writeable static data,
+4. The heap, and
+5. The stack.
+
+`data` indiates that these instructions should be placed in the code section. This next line:
 
 ```arm
 .global _start
