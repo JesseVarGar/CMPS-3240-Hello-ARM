@@ -1,19 +1,20 @@
-# CMPS 3240 Lab: Hello, world! ARM
+# CMPS 3240 Lab: Hello, World! ARM
 
 ## Objectives
 
 During this lab you will:
 
 * Code ARM64 (ARMv8-A) assembly language
-* Assemble and link assembly code
-* Use `gdb` to debug a binary program
+* Assemble and link assembly code with `as` and `ld`
+* Use `gdb` to debug a binary process
 
 ## Prerequisites
 
 This lab assumes you have read or are familiar with the following topics:
 
-* Difference between compiler, assembler and linker. Refer to Appendix A-1. Note that the book covers MIPS, and we will be using ARM for labs.
-* CPU registers, register usage, load-store architecture.
+* Difference between compiler, assembler and linker. Refer to Appendix A-1.<sup>a</sup>
+* Concept of CPU registers
+* Concept of load-store architecture
 * Use software interrupts to halt a program and print to the screen
 
 Please study these topics if you are not familiar with them so that the lab can be completed in a timely manner.
@@ -42,22 +43,17 @@ This lab requires the departmental ARM server. It will not work on `odin.cs.csub
 
 ## Background
 
-This lab will cover two important concepts: 1) interacting with data on microprocessors, and 2) running programs on microprocessors. First, microprocessors have two types of storage for data: registers and memory. Registers are special:
+This lab will cover two important concepts. First, we cover interacting with data on microprocessors. Second, we cover running processes on microprocessors. 
 
-* You only have a finite amount of them. We will learn why so later on in class. If you didn't know this beforehand, this is kind of a staggering concept, that your processor only has a capacity to hold properly operate on only tens of values at once. At a given time it is juggling intermediate values between registers and memory. MIPS has 32 general purpose registers. ARM64 has roughly 31 general purpose registers. Your x86 processor has only tens of registers.
-* They are very fast compared to memory because they are constructed from SRAM rather than DRAM.
-* Some architectures, such as MIPS and ARM, can only perform arithmetic on register values. So, if you want to modify something in memory you must load it to a register, modify it, then store it back into memory. This is called *load-store architecture*.
-* They have a given identifier, you cannot rename them. Examples: `x0`, `x1`, `x2`, etc. Names change across different versions of ARM.
-* Their values are static across function calls and possibly different processes (Unless precautions are made by you or the compiler).
-* Some of them have a specific use, and are considered reserved. Some reserved registers are protected and will cause an error if your program attempts to access the value without proper permissions. But some reserved registers are not protected and you can freely modify them at your own peril. Register usage convention may change across different versions of ARM.
+Microprocessors have two types of storage for data: registers and memory. Registers are special. You only have a finite amount of them. We will learn why so later on in class. If you didn't know it beforehand, this a staggering concept. Your processor only has a capacity operate on only tens of values at once. At a given time it is juggling intermediate values between registers and memory. MIPS has 32 general purpose registers. ARM64 has roughly 31 general purpose registers. Registers use SRAM technology and are faster than memory. Registers have a given identifier, you cannot rename them. Examples: `x0`, `x1`, `x2`, etc. Note that names change across different versions of ARM. Registers values are generally static across subroutine calls in your process. Some registers are *scratch registers* for use with internal logic of your program. Others have are reserved and have some specific use. Further, some are protected and access will cause an error without proper permissions. Register usage convention may change across different versions of ARM.
 
-Most of the instructions in today's lab will operate on registers. 
+Some architectures can only perform arithmetic values in registers. Some examples being MIPS and ARM. If you want to change a value in memory you must load it to a register with a single instruction. Then, it becomes possible to change the value with arithmetic operations. When finished, you store it back into memory with a third operation. This is *load-store architecture*.
 
-The second concept we will cover is the idea that your program is a *user process*. It runs some commands, etc. However, there are some situations, such as I/O or the completion of the program, where your process will have to get the help of the *supervisor process* (OS) to accomplish a goal. This handoff is called a syscall, where you program temporally hands off control to the supervisor. You can think of this as a sort of function call that you would see in a higher-level language.
+The second concept we will cover is the idea that your program is a *user process*. It runs some commands, etc. There are some situations when I/O is needed or the program is complete. Your process will have to get the help of the *supervisor process* to do this goal. This handoff a system call. Your process hands off control to the supervisor. It returns control when finished. You can think of this as a sort of function call that you would see in a higher-level language.
 
 ## Approach
 
-The lab consists of two parts. Using `as` and `ld` to assemble and link ARM code respectively, and implementing a hello world program. Start by cloning this repository:
+The lab consists of two parts. Using `as` and `ld` to assemble and link ARM code respectively and implementing a Hello, World! program. Start by cloning this repository:
 
 ```shell
 $ git clone https://github.com/DrAlbertCruz/CMPS-3240-Hello-ARM.git
@@ -67,7 +63,7 @@ $ cd CMPS-3240-Hello-ARM
 
 ### Part 1 - Using GDB to View Contents of Registers
 
-The first 'Hello world!' in this class will not print a string at first. The idea of hello world is to view the output of a simple operation. However, with CPU architecture, we are operating at such an atomic level that we can view the effect our instructions are having on the registers themselves. Here is the first program we will consider:
+The first "Hello, World!" in this class will not print a string at first. The idea of "Hello, World!" is to view the output of a simple operation. Yet, we are operating at an atomic level. We can view the effect our instructions are having on the registers themselves. Here is the first program we will consider:
 
 ```arm
 .text
@@ -77,13 +73,19 @@ _start:
 	add x2, x1, x1
 ```
 
-This code is located in `hello.s` in this repo. Line-by-line:
+which can be viewed by in your favorite text editor:
+
+```bash
+$ vim hello.s
+```
+
+In the following, we explain this code line-by-line:
 
 ```arm
 .text
 ```
 
-This line is not an instruction at all. It is an assembler/linker directive that indicates where these instructions should be placed. Generally there are five parts of memory:
+This code line is not an instruction at all. It is an assembler/linker directive that indicates where the following should be placed.<sup>b</sup> Generally there are five parts of memory:
 
 1. Code (the process being executed) which is readable but not writable,
 2. Read only static data,
@@ -97,13 +99,13 @@ This line is not an instruction at all. It is an assembler/linker directive that
 .global _start
 ``` 
 
-This is a directive that indicates the following code is associated with the function `_start`. It will be useful for `gdb` later on. This next line:
+This is a directive that indicates the following code is associated with the subroutine `_start`. It will be useful for `gdb` later on. This next line:
 
 ```arm
 _start:
 ```
 
-This is the first line that is not a directive. Yet, it is not an instruction. It is a label. It indicates the line that follows should be associated with the identifier `_start`.  By default, `_start` is the start of the program. When executing a program, the processor has a reserved register that indicates which instruction to execute. This is called the *program counter*, and it is initialized to `_start`. Now consider this line:
+This is the first line that is not a directive. Yet, it is not an instruction. It is a label. It indicates the line that follows should be associated with the identifier `_start`. By default, `_start` is the start of the program. When executing a program, the processor has a reserved register that indicates which instruction to execute. This is called the *program counter*, and it is initialized to `_start`. Now consider this line:
 
 ```arm
 mov x1, #7
@@ -122,7 +124,7 @@ $ as hello.s -o hello.o
 $ ld hello.o -o hello.out
 ```
 
-These commands assemble and link the code respectively. Note that these instructions are defined by the Make target `$ make hello.out`.  If you try to run the command, you will get the following:
+These commands assemble and link the code respectively. Note that these instructions are defined by the Make target `$ make hello.out`. If you try to run the command, you will get the following:
 
 ```shell
 $ ./hello.out
@@ -174,13 +176,18 @@ Which is the hard coded value we specified. Executing `step` moves onto the next
 (gdb) step
 Single stepping until exit from function _start,
 which has no line number information.
+```
+
+Note that you can provide a list of registers after `info registers` which gives less information and may be more useful: 
+
+```gdb
 0x0000000000400080 in ?? ()
 (gdb) info registers x1 x2
 x1             0x7	7
 x2             0xe	14
 ```
 
-*Note that you can provide a list of registers after `info registers`*. There you have it, hello CPU, we instructed it to add two numbers at the machine level. Exit `gdb` with `quit`:
+Two things to note here. First, note the addresses. The previous instruction was at `0x000000000040007c` and the current instruction is at `0x0000000000400080`. Subtracting the two gives 4, which confirms that ARM instructions are 4-bytes long. Second, note that the addition of `x1` plus itself and assignment to `x2` is carried out. There you have it, hello CPU, we instructed it to add two numbers at the machine level. Exit `gdb` with `quit`:
 
 ```gdb
 (gdb) quit
@@ -190,7 +197,7 @@ In the following, we will print a string to the screen and properly close the pr
 
 ### Part 2 - Make Like a Tree, and Quit!
 
-There are two things we have to implement with out program: actually quitting, and printing 'Hello world!'. We will accomplish this with system calls (the command `svc`), which causes a software interrupt. Our program is interrupted and it hands over control to the supervisor (OS). The supervisor process investigates specific registers to determine what to do. Some of the registers are taken as arguments, and certain operations halt the process entirely. The interface for syscall is as follows:
+There are two things we have to implement with out program: actually quitting, and printing 'Hello world!'. We will accomplish this with system calls (the command `svc`), which causes a software interrupt. Our program offers an interrupt and hands over control to the supervisor. The supervisor process investigates specific registers to determine what to do (input arguments). The interface for syscall is as follows:
 
 * An integer specifying what the supervisor should do is placed in `x8`. A reference is located here.<sup>2</sup>
 * Any arguments, if needed, are placed in order starting from `x0`. 
@@ -204,20 +211,23 @@ mov x0, #0
 svc #0
 ```
 
-`mov x0, #0` is obligatory because, by convention, the return value of the function is placed in register 0. So, this is equivalent to the C code:
+`mov x0, #0` is obligatory because, by convention, the return value of the process is placed in register 0. So, this is equivalent to the C code:
 
 ```c
-return 0;
+int main() {
+	...
+	return 0;
+}
 ```
 
-which you would normally find at the end of `main()` if everything went OK. Re-`make` everything, and if it works you should get:
+which you would normally find at the end of `main()`. Re-`make` everything, and if it works you should get:
 
 ```shell
 $ ./hello.out
 $
 ```
 
-Nice, no output is exactly what we wanted. Note that there is no illegal instruction/core dump. Without `sys_exit` the processor continued to execute command after command in memory which it may not have had permission for (best situation) or started executing garbage or data statements as instruction statements (worst situation). You can also verify the program exited normally with `gdb`:
+Note that there is no illegal instruction/core dump. Without `sys_exit` the processor continued to execute command after command in memory which it may not have had permission for (best situation) or started executing garbage or data statements as instructions (worst situation). You can also verify the program exited normally with `gdb`:<sup>c</sup>
 
 ```shell
 $ gdb ./hello.out
@@ -231,21 +241,25 @@ Continuing.
 [Inferior 1 (process 9987) exited normally]
 ```
 
-*You might want to confirm this really exits the program by placing additional commands after `svc #0` to see what happens. Verify with `gdb`.*
-
 ### Part 3 - Hello, world!
 
 Syscall is also how we will print a string. In the future we will use C-style `printf()`s, but for this lab we will use syscall to perform `sys_write`.<sup>3</sup> Append the following code:
 
 ```arm
+# This is a comment
+# Operation 84 is sys_write
 mov x8, #64
+# sys_write takes 1 argument, which file descriptor to print to. 1 is screen.
 mov x0, #1
+# Pointer to string
 ldr x1, =msg
+# Length of string
 ldr x2, =len
+# Syscall
 svc #0
 ```
 
-*Comprehension check: Where should you add this code?* `#64` is the syscall mode to print to a file descriptor (such as the screen). `ldr` takes the second argment, a label, and places the address of the label in the first argument, a register.<sup>4</sup> The arguments, in order, should be as follows:
+`#64` is the syscall mode to print to a file descriptor (such as the screen). `ldr` takes the second argment, a label, and places the address of the label in the first argument, a register.<sup>4</sup> The arguments, in order, should be as follows:
 
 1. The file descriptor to print to. `#1` is the screen.
 1. A pointer to the message (more on that soon).
@@ -254,8 +268,13 @@ svc #0
 How do we pass a string to syscall? Well, we have to declare it in memory as a static string, and then pass a pointer to the start of the string via syscall. At the very end of your code *even after svc #0*, insert:
 
 ```arm
+# Declare the following as data, not instructions
+.data
+# For debugging, a variable called msg
+.global msg
 msg:
     .ascii "hello world\n"
+# Code to reference length of string pointed to by msg
 len = . - msg
 ```
 
@@ -272,6 +291,17 @@ If you finish early, consider the Make target `make hello_gcc.s`, which uses `gc
 ### References
 
 <sup>1</sup>http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0489c/Cihidabi.html
+
 <sup>2</sup>https://github.com/torvalds/linux/blob/v4.17/include/uapi/asm-generic/unistd.h
+
 <sup>3</sup>http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0058d/BACBEDJI.html
+
 <sup>4</sup>http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Babbfdih.html
+
+### Footnotes
+
+<sup>a</sup>Note that the book covers MIPS, and we will be using ARM for labs.
+
+<sup>b</sup>It makes no distinction between data and instructions, so you can accidentally order the assembler to place instructions into the data section and vise versa. This is a common error.
+
+<sup>c</sup>If you're curious you might want to confirm this really exits the program by placing additional commands after `svc #0` to see what happens. Verify with `gdb`.
