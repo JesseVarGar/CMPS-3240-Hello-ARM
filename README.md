@@ -34,7 +34,7 @@ We will use the following programs:
 
 ### Compatability
 
-This lab requires the departmental ARM server. It will not work on `odin.cs.csubak.edu`, `sleipnir.cs.csubak.edu`, other PCs, etc. that have x86 processors. It may work on a Raspberry Pi or similar system on chip with ARM, but it must be ARMv8-a.
+This lab requires the departmental ARM server, `fenrir.cs.csubak.edu`. It will not work on `odin.cs.csubak.edu`, `sleipnir.cs.csubak.edu`, other PCs, etc. that have x86 processors. It may work on a Raspberry Pi or similar system on chip with ARM, but it must be ARMv8-a.
 
 | Linux | Mac | Windows |
 | :--- | :--- | :--- |
