@@ -45,11 +45,11 @@ This lab requires the departmental ARM server, `fenrir.cs.csubak.edu`. It will n
 
 This lab will cover two important concepts. First, we cover interacting with data on microprocessors. Second, we cover running processes on microprocessors. 
 
-Microprocessors have two types of storage for data: registers and memory. Registers are special. You only have a finite amount of them. We will learn why so later on in class. If you didn't know it beforehand, this a staggering concept. Your processor only has a capacity operate on only tens of values at once. At a given time it is juggling intermediate values between registers and memory. MIPS has 32 general purpose registers. ARM64 has roughly 31 general purpose registers. Registers use SRAM technology and are faster than memory. Registers have a given identifier, you cannot rename them. Examples: `x0`, `x1`, `x2`, etc. Note that names change across different versions of ARM. Registers values are generally static across subroutine calls in your process. Some registers are *scratch registers* for use with internal logic of your program. Others have are reserved and have some specific use. Further, some are protected and access will cause an error without proper permissions. Register usage convention may change across different versions of ARM.
+Microprocessors have two types of storage for data: registers and memory. Registers are special. You only have a finite amount of them. We will learn why so later on in class. If you didn't know it beforehand, this a staggering concept. Your processor only has a capacity operate on only tens of values at once. At a given time it is juggling intermediate values between registers and memory. MIPS has 32 general purpose registers. ARM64 has roughly 31 general purpose registers. Registers use SRAM technology and are faster than memory. Registers have a given identifier, you cannot rename them. Examples: `x0`, `x1`, `x2`, etc. Note that names change across different versions of ARM, and this will probably impact how useful external resources are if you have an issue. Registers values are generally static across subroutine calls in your process. Some registers are *scratch registers* for use with internal logic of your code. Others have are reserved and have some specific use. Further, some are protected and access will cause an error without proper permissions. Register usage convention may change across different versions of ARM and the operating system you are using.
 
-Some architectures can only perform arithmetic values in registers. Some examples being MIPS and ARM. If you want to change a value in memory you must load it to a register with a single instruction. Then, it becomes possible to change the value with arithmetic operations. When finished, you store it back into memory with a third operation. This is *load-store architecture*.
+Some architectures can only perform arithmetic values in registers. Some examples being MIPS and ARM. If you want to change a value in memory you must load it to a register with a single instruction. Then, it becomes possible to change the value with arithmetic operations. When finished, you store it back into memory with a third operation. This is called *load-store architecture*.
 
-The second concept we will cover is the idea that your program is a *user process*. It runs some commands, etc. There are some situations when I/O is needed or the program is complete. Your process will have to get the help of the *supervisor process* to do this goal. This handoff a system call. Your process hands off control to the supervisor. It returns control when finished. You can think of this as a sort of function call that you would see in a higher-level language.
+The second concept we will cover is the idea that your program is a *user process*. It runs some commands, etc. There are some situations when I/O is needed or the program is complete. Your process will have to get the help of the *supervisor process* to do this goal. This handoff is called a *system call* or syscall for short. Your process hands off control to the supervisor. The supervisor then returns control when finished. You can think of this as a sort of function call that you would see in a higher-level language.
 
 ## Approach
 
@@ -61,9 +61,17 @@ $ git clone https://github.com/DrAlbertCruz/CMPS-3240-Hello-ARM.git
 $ cd CMPS-3240-Hello-ARM
 ```
 
+Use `ls` to take a look at the files in the directory and take some time to familiarize yourself with them.
+
 ### Part 1 - Using GDB to View Contents of Registers
 
-The first "Hello, World!" in this class will not print a string at first. The idea of "Hello, World!" is to view the output of a simple operation. Yet, we are operating at an atomic level. We can view the effect our instructions are having on the registers themselves. Here is the first program we will consider:
+The first "Hello, World!" in this class will not print a string at first. The idea of "Hello, World!" is to view the output of a simple operation. Yet, we are operating at an atomic level. We can view the effect our instructions are having on the registers themselves. `hello.s` is the first program we will consider. Open it up in any text editor:
+
+```bash
+$ vim hello.s
+```
+
+The contents are as follows:
 
 ```arm
 .text
@@ -73,19 +81,13 @@ _start:
 	add x2, x1, x1
 ```
 
-which can be viewed by in your favorite text editor:
-
-```bash
-$ vim hello.s
-```
-
 In the following, we explain this code line-by-line:
 
 ```arm
 .text
 ```
 
-This code line is not an instruction at all. It is an assembler/linker directive that indicates where the following should be placed.<sup>b</sup> Generally there are five parts of memory:
+This code line is not an instruction at all. It is an assembler/linker directive that indicates where the following lines of code should be placed.<sup>b</sup> Generally there are five parts of memory:
 
 1. Code (the process being executed) which is readable but not writable,
 2. Read only static data,
@@ -93,25 +95,25 @@ This code line is not an instruction at all. It is an assembler/linker directive
 4. The heap, and
 5. The stack.
 
-`data` indiates that these instructions should be placed in the code section. This next line:
+`.text` indiates that these instructions should be placed in the code section. Another common directive is `.data`, which would place what follows in the static data section. This next line:
 
 ```arm
 .global _start
 ``` 
 
-This is a directive that indicates the following code is associated with the subroutine `_start`. It will be useful for `gdb` later on. This next line:
+This is also a directive. It indicates the following code is associated with the subroutine `_start`. It will be useful for the debugger (`gdb`) later on. This next line:
 
 ```arm
 _start:
 ```
 
-This is the first line that is not a directive. Yet, it is not an instruction. It is a label. It indicates the line that follows should be associated with the identifier `_start`. By default, `_start` is the start of the program. When executing a program, the processor has a reserved register that indicates which instruction to execute. This is called the *program counter*, and it is initialized to `_start`. Now consider this line:
+This is the first line that is not a directive. Yet, it is not an instruction. It is a *label*. It indicates the line that follows should be associated with the identifier `_start`. With `as` and `ld`, `_start` is the start of the program. When executing a program, the processor has a reserved register that indicates which instruction to execute. This is called the *program counter* or PC, and it is initialized to `_start`. Now consider this line:
 
 ```arm
 mov x1, #7
 ```
 
-This is the first real instruction that is executed by the CPU. `mov` is the mnemonic, which tells the processor what to do. The remaining text are the arguments. `x1` is a register. `mov` in this case takes the literal value of 7 and places it in the register `x1`, clobbering whatever value was previously there. Note that literal integers begin with a hashtag. Moving on to the next instruction:
+This is the first real instruction that is executed by the CPU. `mov` is the mnemonic, which tells the processor what to do. The remaining text are the arguments. `x1` is a register. `mov` in this case takes the literal value of 7 and places it in the register `x1`, clobbering whatever value was previously there. Move on to the next instruction:
 
 ```arm
 add x2, x1, x1 
@@ -124,14 +126,16 @@ $ as hello.s -o hello.o
 $ ld hello.o -o hello.out
 ```
 
-These commands assemble and link the code respectively. Note that these instructions are defined by the Make target `$ make hello.out`. If you try to run the command, you will get the following:
+These commands assemble and link the code respectively. Note that these instructions are defined by the Make target `$ make hello.out` in `makefile`. If you try to run the command, you will get the following:
 
 ```shell
 $ ./hello.out
 Illegal instruction (core dumped)
 ```
 
-At the end of the program, the user process must inform the supervisor that it is complete. We will handle that later. For now, use `gdb` to debug the code and view the contents of the registers line by line. If you haven't used it before, `gdb` is capable of debugging your code by stopping at certain breakpoints and letting you view the contents of the CPU in depth. Fire it up as follows:
+Believe it or not this is a success. At the end of the program, the user process must inform the supervisor that it is complete. We did not add this code, so the processor keeps executing lines of code beyond the last instruction `add x2, x1, x1`. These lines we did not explicitly specify may be garbage or zero, but when read by the processor it is generally invalid, hence why it tells us that it executed an illegal instruction. We will handle proper exiting later. 
+
+For now, use `gdb` to debug the code and view the contents of the registers line by line. If you haven't used it before, `gdb` is capable of debugging your code by stopping at certain breakpoints and letting you view the contents of the CPU in depth. Fire it up as follows:
 
 ```shell
 $ gdb ./hello.out
@@ -141,14 +145,24 @@ Reading symbols from ./hello.out...(no debugging symbols found)...done.
 (gdb) 
 ```
 
-The `(gdb)` indicates you're in the `gdb` CLI. If you attempt to run the program now you will get a replay of when you attempted to run it in the regular terminal CLI. Instead, we are going to put a breakpoint at the start of the function `_start`. Use the following command:
+The first argument to `gdb` should be the process you want to execute. The `(gdb)` prefix indicates you're in the `gdb` CLI. If you attempt to run the program now you will get a replay of when you attempted to run it in the regular terminal CLI:
+
+```bash
+(gdb) run
+Starting program: /home/albert/CMPS-3240-Hello-ARM/hello.out 
+
+Program received signal SIGILL, Illegal instruction.
+0x0000000000400080 in ?? ()
+```
+
+At this point you can restart `gdb` by `quit`ing and starting over, or executing `run` again which will cause `gdb` to ask if you want to want to restart the program. Now, insert a breakpoint at the start of the function `_start`. Use the following command:
 
 ```gdb
 (gdb) br _start
 Breakpoint 1 at 0x40007c
 ```
 
-`0x40007c` is the default memory address of `_start`, a convention specified by some combination of the architecture and the OS. `gdb` has not actually run the program yet, it just noted that when we start the program, it should halt on the instruction labeled `_start` to let you examine the internals of the program. Run the program as follows:
+`0x40007c` is the default memory address of `_start`, a convention specified by some combination of the architecture and the OS. `gdb` has not actually run the program yet, it just noted that when we start the program, it should halt on the instruction labeled `_start` to let you examine the internals of the program. This is called a *breakpoint*. When executing commands if `gdb` runs into a breakpoint it will halt. Run the program as follows:
 
 ```gdb
 (gdb) run
@@ -170,15 +184,23 @@ but this is information overkill perhaps. Note `pc` and how it echos the locatio
 x1             0x7	7
 ```
 
-Which is the hard coded value we specified. Executing `step` moves onto the next line:
+This is the hard coded value we specified. Note that x2 hasn't been assigned a value yet. Supposed that you wanted to view the format of the instruction instead. You would execute:<sup>d</sup>
+
+```gdb
+(gdb) x/4tb 0x40007c
+0x40007c <_start+4>:	00100010	00000000	00000001	10001011
+```
+
+In a later lab I will explain the `x/4tb` command, just take it as given for now. This is mostly fun to look at since the textbook covers MIPS encoding, and we don't really cover ARM encoding. Now, execute `step` to move onto the next instruction:
 
 ```gdb
 (gdb) step
 Single stepping until exit from function _start,
 which has no line number information.
+0x0000000000400080 in ?? ()
 ```
 
-Note that you can provide a list of registers after `info registers` which gives less information and may be more useful: 
+Now, view the contents of the registers. Note that you can provide a list of registers after `info registers` which gives less information and may be more useful: 
 
 ```gdb
 0x0000000000400080 in ?? ()
@@ -187,7 +209,7 @@ x1             0x7	7
 x2             0xe	14
 ```
 
-Two things to note here. First, note the addresses. The previous instruction was at `0x000000000040007c` and the current instruction is at `0x0000000000400080`. Subtracting the two gives 4, which confirms that ARM instructions are 4-bytes long. Second, note that the addition of `x1` plus itself and assignment to `x2` is carried out. There you have it, hello CPU, we instructed it to add two numbers at the machine level. Exit `gdb` with `quit`:
+Two things to note here. First, note the address `0x0000000000400080`. The previous instruction was at `0x000000000040007c` and the current instruction is at `0x0000000000400080`. Subtracting the two gives 4, which confirms that ARM instructions are 4-bytes long. Second, note that the addition of `x1` plus itself and assignment to `x2` is carried out. There you have it, hello CPU, we instructed it to add two numbers at the machine level. Exit `gdb` with `quit`:
 
 ```gdb
 (gdb) quit
@@ -305,3 +327,5 @@ If you finish early, consider the Make target `make hello_gcc.s`, which uses `gc
 <sup>b</sup>It makes no distinction between data and instructions, so you can accidentally order the assembler to place instructions into the data section and vise versa. This is a common error.
 
 <sup>c</sup>If you're curious you might want to confirm this really exits the program by placing additional commands after `svc #0` to see what happens. Verify with `gdb`.
+
+<sup>d</sup>Technically this is _start+4 so you would need to subtract 4 from the memory address to view the last instruction.
